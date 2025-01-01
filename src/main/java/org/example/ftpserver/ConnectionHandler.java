@@ -38,7 +38,7 @@ public class ConnectionHandler implements Runnable {
 
             String line;
             while ((line = reader.readLine()) != null) {
-//                System.out.println("Received: " + line);
+                System.out.println("Received: " + line);
                 Command command = CommandParser.parse(line);
                 if (command == null) {
                     sendMessage(FTPResponse.NOT_IMPLEMENTED);
@@ -105,7 +105,7 @@ public class ConnectionHandler implements Runnable {
         this.dataSocket = dataSocket;
     }
 
-    private void cleanup() {
+    public void cleanup() {
         try {
             if (currentAccount != null) {
                 currentAccount.setOnline(false);

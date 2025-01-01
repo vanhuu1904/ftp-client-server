@@ -32,4 +32,5 @@ public class Account {
     public void setOnline(boolean status) {
         this.online = status;
     }
+
 }

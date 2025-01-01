@@ -1,7 +1,7 @@
 package org.example.ftpserver;
 
 public class FTPResponse {
-    // Thông điệp không cần đăng nhập
+
     public static final String WELCOME = "220 Service ready for new user.";
     public static final String NEED_PASSWORD = "331 User name okay, need password.";
     public static final String LOGIN_SUCCESS = "230 User logged in, proceed.";
@@ -9,13 +9,13 @@ public class FTPResponse {
     public static final String BAD_SEQUENCE = "503 Bad sequence of commands.";
     public static final String QUIT_SUCCESS = "221 Service closing control connection.";
 
-    // Thông điệp yêu cầu đăng nhập
+
     public static final String NEED_LOGIN = "530 Not logged in.";
 
-    // Thông điệp hệ thống
+
     public static final String SYSTEM_INFO = "215 UNIX Type: L8";
 
-    // Thông điệp thực thi lệnh thành công
+
     public static final String COMMAND_OKAY = "200 Command okay.";
     public static final String TYPE_I_SUCCESS = "200 Switching to Binary mode.";
     public static final String TYPE_A_SUCCESS = "200 Switching to ASCII mode.";
@@ -23,7 +23,7 @@ public class FTPResponse {
     public static final String DELETE_SUCCESS = "250 Delete operation successful.";
     public static final String CLOSING_DATA_CONN = "226 Closing data connection. Requested file action successful.";
 
-    // Thông điệp lỗi
+
     public static final String NOT_IMPLEMENTED = "502 Command not implemented.";
     public static final String FILE_UNAVAILABLE = "550 File unavailable.";
     public static final String CANT_OPEN_DATA = "425 Can't open data connection.";
@@ -31,6 +31,6 @@ public class FTPResponse {
     public static final String INVALID_PARAMETER = "504 Command not implemented for that parameter.";
     public static final String SYNTAX_ERROR = "501 Syntax error in parameters or arguments.";
 
-    // Thông điệp PASV
+
     public static final String ENTERING_PASV = "227 Entering Passive Mode (%s,%d,%d).";
 }

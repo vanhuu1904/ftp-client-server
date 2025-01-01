@@ -18,28 +18,32 @@ public class CommandHandler {
         String type = cmd.getType();
         String arg = cmd.getArgument();
 
-        // Process commands that do not require a login
+        // Xử lý các lệnh không yêu cầu đăng nhập
         if (NON_PRIVILEGED.contains(type)) {
             switch (type) {
                 case "USER":
-                    return handleUSER(arg, conn);
+                    handleUSER(arg, conn); // Gọi trực tiếp
+                    break;
                 case "PASS":
-                    return handlePASS(arg, conn);
+                    handlePASS(arg, conn); // Gọi trực tiếp
+                    break;
                 case "QUIT":
                     handleQUIT(conn);
-                    return true; // End connection
+                    conn.cleanup(); // Kết thúc kết nối tại đây
+                    break;
                 default:
                     conn.sendMessage(FTPResponse.NOT_IMPLEMENTED);
             }
             return false;
         }
 
-        // Handle login requests
+        // Kiểm tra đăng nhập trước khi xử lý các lệnh yêu cầu quyền
         if (conn.getCurrentAccount() == null || !conn.getCurrentAccount().isOnline()) {
             conn.sendMessage(FTPResponse.NEED_LOGIN);
             return false;
         }
 
+        // Xử lý các lệnh yêu cầu quyền
         switch (type) {
             case "SYST":
                 conn.sendMessage(FTPResponse.SYSTEM_INFO);
@@ -80,65 +84,67 @@ public class CommandHandler {
             default:
                 conn.sendMessage(FTPResponse.NOT_IMPLEMENTED);
         }
-
         return false;
     }
 
+
     // USER
-    private static boolean handleUSER(String username, ConnectionHandler conn) {
+    private static void handleUSER(String username, ConnectionHandler conn) {
         if (username == null) {
             conn.sendMessage(FTPResponse.LOGIN_INVALID);
-            return false;
+            return;
         }
+
 
         for (Account acc : conn.getAccounts()) {
             if (acc.getUsername().equals(username)) {
                 conn.setCurrentAccount(acc);
                 conn.sendMessage(FTPResponse.NEED_PASSWORD);
-                return false;
+                return;
             }
         }
 
         conn.sendMessage(FTPResponse.LOGIN_INVALID);
-        return false;
     }
 
-    // PASS
-    private static boolean handlePASS(String password, ConnectionHandler conn) {
+    private static void handlePASS(String password, ConnectionHandler conn) {
         Account acc = conn.getCurrentAccount();
         if (acc == null) {
             conn.sendMessage(FTPResponse.BAD_SEQUENCE);
-            return false;
+            return;
         }
 
         if (password != null && password.equals(acc.getPassword())) {
             acc.setOnline(true);
             String rootFolder = acc.getRootFolder();
             Path projectDir = Paths.get(System.getProperty("user.dir"));
-            Path rootPath = projectDir.resolve("src/main/java/org/example/ftpserver").resolve(rootFolder).normalize().toAbsolutePath();
+            Path rootPath = projectDir.resolve("src/main/java/org/example/ftpserver")
+                    .resolve(rootFolder)
+                    .normalize()
+                    .toAbsolutePath();
+
+            // Kiểm tra thư mục root
             if (!Files.exists(rootPath) || !Files.isDirectory(rootPath)) {
                 conn.sendMessage("550 Root folder does not exist.");
                 conn.setCurrentAccount(null);
-                return false;
+                return;
             }
+
             conn.setWorkingDir(rootPath.toString());
-//            System.out.println("workingDir: " + conn.getWorkingDir());
+            System.out.println(conn.getWorkingDir());
             conn.sendMessage(FTPResponse.LOGIN_SUCCESS);
-//            System.out.println("User " + acc.getUsername() + " logged in.");
-            return false;
         } else {
             conn.sendMessage(FTPResponse.LOGIN_INVALID);
             conn.setCurrentAccount(null);
-            return false;
         }
     }
+
 
     // QUIT
     private static void handleQUIT(ConnectionHandler conn) {
         Account acc = conn.getCurrentAccount();
         if (acc != null && acc.isOnline()) {
             acc.setOnline(false);
-//            System.out.println("User " + acc.getUsername() + " logged out.");
         }
         conn.sendMessage(FTPResponse.QUIT_SUCCESS);
     }
@@ -151,7 +157,7 @@ public class CommandHandler {
     // LIST
     private static void handleLIST(ConnectionHandler conn) {
         try {
-            // open data connection
+            // Open data connection
             Socket dataSocket = openDataConnection(conn);
             if (dataSocket == null) {
                 return;
@@ -173,17 +179,17 @@ public class CommandHandler {
                     }
 
                     // Get file/folder properties
-                    PosixFileAttributes posixAttrs = Files.readAttributes(entry, PosixFileAttributes.class);
+                    BasicFileAttributes basicAttrs = Files.readAttributes(entry, BasicFileAttributes.class);
 
                     // Get details
                     String permissions = getPermissions(entry);
-                    String owner = posixAttrs.owner().getName();
-                    String groupName = posixAttrs.group().getName();
-                    long size = posixAttrs.size();
-                    String modifiedTime = new SimpleDateFormat("MMM dd HH:mm").format(new Date(posixAttrs.lastModifiedTime().toMillis()));
+                    String owner = getOwner(entry);
+                    String groupName = "group";
+                    long size = basicAttrs.size();
+                    String modifiedTime = new SimpleDateFormat("MMM dd HH:mm").format(new Date(basicAttrs.lastModifiedTime().toMillis()));
                     String name = entry.getFileName().toString();
 
-                    // Ghi thông tin vào kết nối dữ liệu
+                    // Write information to the data connection
                     String line = String.format("%s 1 %s %s %10d %s %s",
                             permissions, owner, groupName, size, modifiedTime, name);
                     dataWriter.write(line + "\r\n");
@@ -230,10 +236,9 @@ public class CommandHandler {
             return;
         }
 
-        Path newPath = Paths.get(path).normalize();
+        Path newPath = Paths.get(conn.getWorkingDir(), path).normalize();
         if (Files.isDirectory(newPath)) {
             conn.setWorkingDir(newPath.toString());
-//            System.out.println("workingDirnew: " + conn.getWorkingDir());
             conn.sendMessage(FTPResponse.COMMAND_OKAY);
         } else {
             conn.sendMessage(FTPResponse.FILE_UNAVAILABLE);
@@ -424,33 +429,29 @@ public class CommandHandler {
     // Utility to get permission string
     private static String getPermissions(Path path) {
         StringBuilder sb = new StringBuilder();
-        try {
-            PosixFileAttributes posixAttrs = Files.readAttributes(path, PosixFileAttributes.class);
-            Set<PosixFilePermission> permissions = posixAttrs.permissions();
-
-            // type
-            sb.append(posixAttrs.isDirectory() ? "d" : "-");
-
-            // permission owner
-            sb.append(permissions.contains(PosixFilePermission.OWNER_READ) ? "r" : "-");
-            sb.append(permissions.contains(PosixFilePermission.OWNER_WRITE) ? "w" : "-");
-            sb.append(permissions.contains(PosixFilePermission.OWNER_EXECUTE) ? "x" : "-");
-
-            // permission group
-            sb.append(permissions.contains(PosixFilePermission.GROUP_READ) ? "r" : "-");
-            sb.append(permissions.contains(PosixFilePermission.GROUP_WRITE) ? "w" : "-");
-            sb.append(permissions.contains(PosixFilePermission.GROUP_EXECUTE) ? "x" : "-");
-
-            // permission other
-            sb.append(permissions.contains(PosixFilePermission.OTHERS_READ) ? "r" : "-");
-            sb.append(permissions.contains(PosixFilePermission.OTHERS_WRITE) ? "w" : "-");
-            sb.append(permissions.contains(PosixFilePermission.OTHERS_EXECUTE) ? "x" : "-");
-
-        } catch (IOException e) {
-            sb.append("----------");
-            System.err.println("Error retrieving permissions for " + path + ": " + e.getMessage());
+        if (Files.isDirectory(path)) {
+            sb.append("d");
+        } else {
+            sb.append("-");
         }
 
+        // Owner permissions
+        sb.append(Files.isReadable(path) ? "r" : "-");
+        sb.append(Files.isWritable(path) ? "w" : "-");
+        sb.append(Files.isExecutable(path) ? "x" : "-");
+
+        sb.append("---");
+        sb.append("---");
+
         return sb.toString();
+    }
+
+    private static String getOwner(Path path) {
+        try {
+            return Files.getOwner(path).getName();
+        } catch (IOException e) {
+            System.err.println("Error retrieving owner for " + path + ": " + e.getMessage());
+            return "unknown";
+        }
     }
 }

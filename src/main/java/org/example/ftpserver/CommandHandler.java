@@ -18,18 +18,18 @@ public class CommandHandler {
         String type = cmd.getType();
         String arg = cmd.getArgument();
 
-        // Xử lý các lệnh không yêu cầu đăng nhập
+        // Process commands that do not require a login
         if (NON_PRIVILEGED.contains(type)) {
             switch (type) {
                 case "USER":
-                    handleUSER(arg, conn); // Gọi trực tiếp
+                    handleUSER(arg, conn);
                     break;
                 case "PASS":
-                    handlePASS(arg, conn); // Gọi trực tiếp
+                    handlePASS(arg, conn);
                     break;
                 case "QUIT":
                     handleQUIT(conn);
-                    conn.cleanup(); // Kết thúc kết nối tại đây
+                    conn.cleanup();
                     break;
                 default:
                     conn.sendMessage(FTPResponse.NOT_IMPLEMENTED);
@@ -37,13 +37,13 @@ public class CommandHandler {
             return false;
         }
 
-        // Kiểm tra đăng nhập trước khi xử lý các lệnh yêu cầu quyền
+        // Check login before processing commands that require permissions
         if (conn.getCurrentAccount() == null || !conn.getCurrentAccount().isOnline()) {
             conn.sendMessage(FTPResponse.NEED_LOGIN);
             return false;
         }
 
-        // Xử lý các lệnh yêu cầu quyền
+
         switch (type) {
             case "SYST":
                 conn.sendMessage(FTPResponse.SYSTEM_INFO);
@@ -116,14 +116,13 @@ public class CommandHandler {
 
         if (password != null && password.equals(acc.getPassword())) {
             acc.setOnline(true);
-            String rootFolder = acc.getRootFolder();
-            Path projectDir = Paths.get(System.getProperty("user.dir"));
-            Path rootPath = projectDir.resolve("src/main/java/org/example/ftpserver")
-                    .resolve(rootFolder)
-                    .normalize()
-                    .toAbsolutePath();
+            Path baseUserDir = Paths.get(System.getProperty("user.dir"))
+                    .resolve("src/main/java/org/example/ftpserver/user");
 
-            // Kiểm tra thư mục root
+            // Create rootFolder path for user
+            Path rootPath = baseUserDir.resolve(acc.getRootFolder()).normalize();
+
+            // Check root directory
             if (!Files.exists(rootPath) || !Files.isDirectory(rootPath)) {
                 conn.sendMessage("550 Root folder does not exist.");
                 conn.setCurrentAccount(null);
@@ -168,7 +167,7 @@ public class CommandHandler {
             BufferedWriter dataWriter = new BufferedWriter(new OutputStreamWriter(dataSocket.getOutputStream()));
 
             // Get the current directory path (workingDir)
-            Path dirPath = Paths.get(conn.getWorkingDir()).toAbsolutePath();
+            Path dirPath = conn.resolvePath(".");
 
             // Browse only files/folders in the current working directory
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath)) {
@@ -236,7 +235,7 @@ public class CommandHandler {
             return;
         }
 
-        Path newPath = Paths.get(conn.getWorkingDir(), path).normalize();
+        Path newPath = conn.resolvePath(path);
         if (Files.isDirectory(newPath)) {
             conn.setWorkingDir(newPath.toString());
             conn.sendMessage(FTPResponse.COMMAND_OKAY);
@@ -259,7 +258,16 @@ public class CommandHandler {
 
     // PWD
     private static void handlePWD(ConnectionHandler conn) {
-        String response = String.format("257 \"%s\" is the current directory.", conn.getWorkingDir());
+        Path currentPath = Paths.get(conn.getWorkingDir());
+        Path rootPath = Paths.get(System.getProperty("user.dir"))
+                .resolve("src/main/java/org/example/ftpserver/user")
+                .resolve(conn.getCurrentAccount().getRootFolder())
+                .normalize();
+
+        // Get the path relative to rootPath
+        Path relativePath = rootPath.relativize(currentPath);
+
+        String response = String.format("257 \"%s\" is the current directory.", "/" + relativePath.toString());
         conn.sendMessage(response);
     }
 
@@ -333,7 +341,7 @@ public class CommandHandler {
             return;
         }
 
-        Path filePath = Paths.get(conn.getWorkingDir(), filename).normalize();
+        Path filePath = conn.resolvePath(filename);
 
         try {
             boolean deleted = Files.deleteIfExists(filePath);

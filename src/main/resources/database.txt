@@ -1,2 +1,2 @@
-admin 123456 ./user/admin
-vanhuu 123456 ./user/vanhuu
+admin 123456    admin
+vanhuu 123456   vanhuu

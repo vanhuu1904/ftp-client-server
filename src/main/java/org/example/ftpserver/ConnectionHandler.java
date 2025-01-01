@@ -105,11 +105,23 @@ public class ConnectionHandler implements Runnable {
         this.dataSocket = dataSocket;
     }
 
+    public Path resolvePath(String relativePath) {
+        Path rootPath = Paths.get(workingDir).toAbsolutePath(); // Root folder của user
+        Path resolvedPath = rootPath.resolve(relativePath).normalize(); // Chuẩn hóa đường dẫn
+
+        // Đảm bảo resolvedPath nằm trong rootPath
+        if (!resolvedPath.startsWith(rootPath)) {
+            throw new SecurityException("Access denied: Attempt to access outside root folder.");
+        }
+
+        return resolvedPath;
+    }
+
+
     public void cleanup() {
         try {
             if (currentAccount != null) {
                 currentAccount.setOnline(false);
-//                System.out.println("User " + currentAccount.getUsername() + " logged out.");
             }
             if (passiveDataSocket != null && !passiveDataSocket.isClosed()) {
                 passiveDataSocket.close();

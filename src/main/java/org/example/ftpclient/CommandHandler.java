@@ -67,7 +67,6 @@ public class CommandHandler {
             File file = new File(localFile);
             if (!file.exists() || !file.canRead()) {
                 System.out.println("\033[31m550 File unavailable.\033[0m");
-                return;
             } else {
                 writer.println("STOR " + file.getName());
                 response = readResponse(reader);

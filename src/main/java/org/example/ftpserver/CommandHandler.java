@@ -130,7 +130,6 @@ public class CommandHandler {
             }
 
             conn.setWorkingDir(rootPath.toString() + "/");
-            System.out.println(conn.getWorkingDir());
             conn.sendMessage(FTPResponse.LOGIN_SUCCESS);
         } else {
             conn.sendMessage(FTPResponse.LOGIN_INVALID);
@@ -327,10 +326,16 @@ public class CommandHandler {
 
             conn.sendMessage("150 Opening data connection.");
 
-            OutputStream dataOut = dataSocket.getOutputStream();
-            Files.copy(filePath, dataOut);
-            dataOut.flush();
-            dataOut.close();
+            try (OutputStream dataOut = dataSocket.getOutputStream();
+                 FileInputStream fileIn = new FileInputStream(filePath.toFile())) {
+
+                byte[] buffer = new byte[4096]; // 4KB buffer size
+                int bytesRead;
+                while ((bytesRead = fileIn.read(buffer)) != -1) {
+                    dataOut.write(buffer, 0, bytesRead);
+                }
+                dataOut.flush();
+            }
             dataSocket.close();
 
             conn.sendMessage(FTPResponse.CLOSING_DATA_CONN);
@@ -357,9 +362,16 @@ public class CommandHandler {
 
             conn.sendMessage("150 Opening data connection.");
 
-            InputStream dataIn = dataSocket.getInputStream();
-            Files.copy(dataIn, filePath, StandardCopyOption.REPLACE_EXISTING);
-            dataIn.close();
+            try (InputStream dataIn = dataSocket.getInputStream();
+                 FileOutputStream fileOut = new FileOutputStream(filePath.toFile())) {
+
+                byte[] buffer = new byte[4096]; // 4KB buffer size
+                int bytesRead;
+                while ((bytesRead = dataIn.read(buffer)) != -1) {
+                    fileOut.write(buffer, 0, bytesRead);
+                }
+                fileOut.flush();
+            }
             dataSocket.close();
 
             conn.sendMessage(FTPResponse.CLOSING_DATA_CONN);

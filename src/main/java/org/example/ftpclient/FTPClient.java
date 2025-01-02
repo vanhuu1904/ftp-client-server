@@ -80,8 +80,6 @@ public class FTPClient {
                         System.out.print("Enter the name of the file to store: ");
                         String storFileName = consoleInput.readLine();
                         CommandHandler.storeFile(controlSocket, writer, reader, storFileName);
-                        break;
-
                     case "4":
                         // CWD command
                         System.out.print("Enter the directory to change to: ");

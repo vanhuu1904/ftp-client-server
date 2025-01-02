@@ -32,12 +32,13 @@ public class FTPClient {
                     writer = new PrintWriter(controlSocket.getOutputStream(), true);
 
                     // Nhận thông báo chào mừng từ server
-                    System.out.println(readResponse());
+                    String response = readResponse();
+                    System.out.println("\033[32m" + response + "\033[0m");
 
                     // Nếu kết nối thành công, thoát khỏi vòng lặp
                     break;
                 }catch (Exception e) {
-                    System.out.println("Could not connect to the specified host and port. Please try again.");
+                    System.out.println("\033[31mCould not connect to the specified host and port. Please try again.\033[0m");
                 }
             }
             // Login
@@ -47,16 +48,16 @@ public class FTPClient {
 
             while (true) {
                 System.out.println("=== FTP Client Options ===");
-                System.out.println("1. List files (LIST)");
-                System.out.println("2. Retrieve file (RETR)");
-                System.out.println("3. Store file (STOR)");
-                System.out.println("4. Change working directory (CWD)");
-                System.out.println("5. Print working directory (PWD)");
-                System.out.println("6. Delete File (DELE)");
-                System.out.println("7. Remove Directory (RMD)");
-                System.out.println("8. Make Directory (MKD)");
-                System.out.println("9. Change to Parent Director (CDUP)");
-                System.out.println("10. Quit (QUIT)");
+                System.out.println("\033[36m1. List files (LIST)\033[0m");
+                System.out.println("\033[33m2. Retrieve file (RETR)\033[0m");
+                System.out.println("\033[34m3. Store file (STOR)\033[0m");
+                System.out.println("\033[36m4. Change working directory (CWD)\033[0m");
+                System.out.println("\033[33m5. Print working directory (PWD)\033[0m");
+                System.out.println("\033[34m6. Delete File (DELE)\033[0m");
+                System.out.println("\033[33m7. Remove Directory (RMD)\033[0m");
+                System.out.println("\033[34m8. Make Directory (MKD)\033[0m");
+                System.out.println("\033[36m9. Change to Parent Director (CDUP)\033[0m");
+                System.out.println("\033[33m10. Quit (QUIT)\033[0m");
                 System.out.println("==========================");
                 System.out.print("Select an option (1-10): ");
                 String choice = consoleInput.readLine();
@@ -150,21 +151,23 @@ public class FTPClient {
             String username = consoleInput.readLine();
             writer.println("USER " + username);
             String response = readResponse();
-            System.out.println(response);
 
             if (response.startsWith("430")) { // Nếu username sai
+                System.out.println("\033[31m" + response + "\033[0m");
                 continue; // Quay lại nhập username
             } else { // Username hợp lệ, yêu cầu nhập password
                 while (true) {
+                    System.out.println("\033[32m" + response + "\033[0m");
                     System.out.print("Enter password: ");
                     String password = consoleInput.readLine();
                     writer.println("PASS " + password);
                     response = readResponse();
-                    System.out.println(response);
 
                     if (response.startsWith("430")) { // Nếu password sai
+                        System.out.println("\033[31m" + response + "\033[0m");
                         break; // Quay lại nhập username
                     } else { // Đăng nhập thành công
+                        System.out.println("\033[32m" + response + "\033[0m");
                         return; // Thoát chương trình hoặc tiếp tục các chức năng khác
                     }
                 }

@@ -129,7 +129,7 @@ public class CommandHandler {
                 return;
             }
 
-            conn.setWorkingDir(rootPath.toString());
+            conn.setWorkingDir(rootPath.toString() + "/");
             System.out.println(conn.getWorkingDir());
             conn.sendMessage(FTPResponse.LOGIN_SUCCESS);
         } else {
@@ -229,14 +229,46 @@ public class CommandHandler {
     }
 
     // CWD
+//    private static void handleCWD(String path, ConnectionHandler conn) {
+//        if (path == null || path.isEmpty()) {
+//            conn.sendMessage(FTPResponse.INVALID_PARAMETER);
+//            return;
+//        }
+//
+////        Path newPath = conn.resolvePath(path);
+//        Path newPath = Paths.get(conn.getWorkingDir(), path).normalize();
+//        if (Files.isDirectory(newPath)) {
+//            conn.setWorkingDir(newPath.toString());
+//            conn.sendMessage(FTPResponse.COMMAND_OKAY);
+//        } else {
+//            conn.sendMessage(FTPResponse.FILE_UNAVAILABLE);
+//        }
+//    }
     private static void handleCWD(String path, ConnectionHandler conn) {
         if (path == null || path.isEmpty()) {
             conn.sendMessage(FTPResponse.INVALID_PARAMETER);
             return;
         }
 
-//        Path newPath = conn.resolvePath(path);
-        Path newPath = Paths.get(conn.getWorkingDir(), path).normalize();
+        Path rootPath = conn.getRootPath();
+        Path newPath;
+
+        if (path.startsWith("/")) {
+            if (path.equals("/" + conn.getCurrentAccount().getRootFolder())) {
+                newPath = rootPath;
+            } else {
+                // Giải quyết đường dẫn tương đối từ rootPath
+                newPath = rootPath.resolve(path.substring(1)).normalize();
+            }
+        } else {
+            newPath = Paths.get(conn.getWorkingDir()).resolve(path).normalize();
+        }
+
+        if (!newPath.startsWith(rootPath)) {
+            conn.sendMessage("550 Access denied.");
+            return;
+        }
+
         if (Files.isDirectory(newPath)) {
             conn.setWorkingDir(newPath.toString());
             conn.sendMessage(FTPResponse.COMMAND_OKAY);
@@ -245,11 +277,14 @@ public class CommandHandler {
         }
     }
 
+
     // CDUP
     private static void handleCDUP(ConnectionHandler conn) {
         Path currentPath = Paths.get(conn.getWorkingDir());
+        Path rootPath = conn.getRootPath();
         Path parent = currentPath.getParent();
-        if (parent != null) {
+
+        if (parent != null && parent.startsWith(rootPath)) {
             conn.setWorkingDir(parent.toString());
             conn.sendMessage(FTPResponse.COMMAND_OKAY);
         } else {
@@ -260,15 +295,14 @@ public class CommandHandler {
     // PWD
     private static void handlePWD(ConnectionHandler conn) {
         Path currentPath = Paths.get(conn.getWorkingDir());
-        Path rootPath = Paths.get(System.getProperty("user.dir"))
-                .resolve("src/main/java/org/example/ftpserver/user")
-                .resolve(conn.getCurrentAccount().getRootFolder())
-                .normalize();
+        Path rootPath = conn.getRootPath();
 
         // Get the path relative to rootPath
         Path relativePath = rootPath.relativize(currentPath);
 
-        String response = String.format("257 \"%s\" is the current directory.", "/" + relativePath.toString());
+        String displayPath = relativePath.toString().isEmpty() ? "/" : "/" + relativePath.toString().replace("\\", "/");
+
+        String response = String.format("257 \"%s\" is the current directory.", displayPath);
         conn.sendMessage(response);
     }
 

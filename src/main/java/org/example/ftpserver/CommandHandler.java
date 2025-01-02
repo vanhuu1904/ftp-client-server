@@ -235,7 +235,8 @@ public class CommandHandler {
             return;
         }
 
-        Path newPath = conn.resolvePath(path);
+//        Path newPath = conn.resolvePath(path);
+        Path newPath = Paths.get(conn.getWorkingDir(), path).normalize();
         if (Files.isDirectory(newPath)) {
             conn.setWorkingDir(newPath.toString());
             conn.sendMessage(FTPResponse.COMMAND_OKAY);

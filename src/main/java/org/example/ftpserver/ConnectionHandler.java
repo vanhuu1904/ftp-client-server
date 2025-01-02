@@ -105,16 +105,29 @@ public class ConnectionHandler implements Runnable {
         this.dataSocket = dataSocket;
     }
 
-    public Path resolvePath(String relativePath) {
-        Path rootPath = Paths.get(workingDir).toAbsolutePath(); // Root folder của user
-        Path resolvedPath = rootPath.resolve(relativePath).normalize(); // Chuẩn hóa đường dẫn
+    public Path resolvePath(String path) {
+        Path rootPath = getRootPath();
+        Path resolvedPath;
 
-        // Đảm bảo resolvedPath nằm trong rootPath
+        if (path.startsWith("/")) {
+            resolvedPath = rootPath.resolve(path.substring(1)).normalize();
+        } else {
+            resolvedPath = Paths.get(this.getWorkingDir()).resolve(path).normalize();
+        }
+
         if (!resolvedPath.startsWith(rootPath)) {
-            throw new SecurityException("Access denied: Attempt to access outside root folder.");
+            return null;
         }
 
         return resolvedPath;
+    }
+
+
+    public Path getRootPath() {
+        return Paths.get(System.getProperty("user.dir"))
+                .resolve("src/main/java/org/example/ftpserver/user")
+                .resolve(this.getCurrentAccount().getRootFolder())
+                .normalize();
     }
 
 

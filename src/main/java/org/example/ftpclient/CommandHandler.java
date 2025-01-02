@@ -14,7 +14,7 @@ public class CommandHandler {
 
         int passivePort = extractPassivePort(response);
         try (Socket dataSocket = new Socket(controlSocket.getInetAddress(), passivePort);
-             BufferedReader dataReader = new BufferedReader(new InputStreamReader(dataSocket.getInputStream()))) {
+             BufferedReader dataReader = new BufferedReader(new InputStreamReader(dataSocket.getInputStream()))) { // Luồng dữ liệu đầu vào để nhận ds file
             writer.println("LIST");
             System.out.println(readResponse(reader));
             String line;
@@ -34,24 +34,21 @@ public class CommandHandler {
 
         int passivePort = extractPassivePort(response);
         try (Socket dataSocket = new Socket(controlSocket.getInetAddress(), passivePort);
-             InputStream dataIn = dataSocket.getInputStream()) {
+             InputStream dataIn = dataSocket.getInputStream()) { // Luồng đầu vào từ datasocket
             String remoteFile = retrFileName;
             writer.println("RETR " + remoteFile);
 
             response = readResponse(reader);
             System.out.println(response);
-//            if (response.startsWith("550")) {
-//                System.out.println("File not found on server.");
-//                return;
-//            }
 
-            FileOutputStream fileOut = new FileOutputStream(remoteFile);
+            FileOutputStream fileOut = new FileOutputStream(remoteFile);// Luồng đầu ra ghi dữ liệu
             byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             while ((bytesRead = dataIn.read(buffer)) != -1) {
                 fileOut.write(buffer, 0, bytesRead);
             }
             fileOut.close();
+            dataIn.close();
             response = reader.readLine();
             System.out.println(response);
         }
@@ -65,7 +62,7 @@ public class CommandHandler {
 
         int passivePort = extractPassivePort(response);
         try (Socket dataSocket = new Socket(controlSocket.getInetAddress(), passivePort);
-             OutputStream dataOut = dataSocket.getOutputStream()) {
+             OutputStream dataOut = dataSocket.getOutputStream()) { // Luồng đầu ra
             String localFile = storFileName;
             File file = new File(localFile);
             if (!file.exists() || !file.canRead()) {
@@ -76,8 +73,8 @@ public class CommandHandler {
                 response = readResponse(reader);
                 System.out.println(response);
 
-                FileInputStream fileIn = new FileInputStream(file);
-                byte[] buffer = new byte[BUFFER_SIZE];
+                FileInputStream fileIn = new FileInputStream(file); // Luồng đầu vào đọc dữ liệu
+                byte[] buffer = new byte[BUFFER_SIZE]; // mảng 1kB
                 int bytesRead;
                 while ((bytesRead = fileIn.read(buffer)) != -1) {
                     dataOut.write(buffer, 0, bytesRead);
@@ -105,12 +102,6 @@ public class CommandHandler {
         writer.println(command); // Gửi lệnh CWD
         String response = readResponse(reader); // Đọc phản hồi từ server
         System.out.println(response);
-
-//        if (response.startsWith("250")) {
-//            System.out.println("Working directory successfully changed.");
-//        } else {
-//            System.out.println("Failed to change working directory.");
-//        }
     }
     public static void printWorkingDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader) throws IOException {
         // Gửi lệnh PWD tới server
@@ -125,11 +116,6 @@ public class CommandHandler {
         writer.println("DELE " + fileName); // Gửi lệnh DELE cùng với tên file
         String response = readResponse(reader); // Đọc phản hồi từ server
         System.out.println(response);
-//        if (response.startsWith("250")) {
-//            System.out.println("File deleted successfully.");
-//        } else {
-//            System.out.println("Failed to delete file: " + response);
-//        }
     }
     // Lệnh RMD: Xóa thư mục trên server
     public static void removeDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader, String directoryName) throws IOException {
@@ -154,6 +140,18 @@ public class CommandHandler {
 //            System.out.println("Failed to create directory: " + response);
 //        }
     }
+    public static void changeToParentDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader) {
+        try {
+            // Gửi lệnh CDUP đến server
+            writer.println("CDUP");
+            String response = reader.readLine();
+            System.out.println(response);
+
+        } catch (IOException e) {
+            System.out.println("Error: Unable to execute CDUP command. " + e.getMessage());
+        }
+    }
+
     private static String readResponse(BufferedReader reader) throws IOException {
         StringBuilder response = new StringBuilder();
         String line;

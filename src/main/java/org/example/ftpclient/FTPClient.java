@@ -12,48 +12,53 @@ public class FTPClient {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-
-        // Nhập hostname từ bàn phím
-        System.out.print("Enter hostname: ");
-        String hostname = scanner.nextLine();
-
-        // Nhập port từ bàn phím
-        System.out.print("Enter port: ");
-        int port = Integer.parseInt(scanner.nextLine());
-
-        // Hiển thị thông tin đã nhập
-        System.out.println("Connecting to hostname: " + hostname);
-        System.out.println("Using port: " + port);
-
         try {
-            // Kết nối tới server
-            controlSocket = new Socket(hostname, port);
-            reader = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
-            writer = new PrintWriter(controlSocket.getOutputStream(), true);
+            while(true) {
+                try{
+                    // Nhập hostname từ bàn phím
+                    System.out.print("Enter hostname: ");
+                    String hostname = scanner.nextLine();
 
-            // Nhận thông báo chào mừng từ server
-            System.out.println(readResponse());
+                    // Nhập port từ bàn phím
+                    System.out.print("Enter port: ");
+                    int port = Integer.parseInt(scanner.nextLine());
 
+                    // Hiển thị thông tin đã nhập
+                    System.out.println("Connecting to hostname: " + hostname);
+                    System.out.println("Using port: " + port);
+                    // Kết nối tới server
+                    controlSocket = new Socket(hostname, port);
+                    reader = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
+                    writer = new PrintWriter(controlSocket.getOutputStream(), true);
+
+                    // Nhận thông báo chào mừng từ server
+                    System.out.println(readResponse());
+
+                    // Nếu kết nối thành công, thoát khỏi vòng lặp
+                    break;
+                }catch (Exception e) {
+                    System.out.println("Could not connect to the specified host and port. Please try again.");
+                }
+            }
             // Login
             authenticate();
-
-            // Vòng lặp nhập lệnh
-            System.out.println("=== FTP Client Options ===");
-            System.out.println("1. List files (LIST)");
-            System.out.println("2. Retrieve file (RETR)");
-            System.out.println("3. Store file (STOR)");
-            System.out.println("4. Change working directory (CWD)");
-            System.out.println("5. Print working directory (PWD)");
-            System.out.println("6. Delete File (DELE)");
-            System.out.println("7. Remove Directory (RMD)");
-            System.out.println("8. Make Directory (MKD)");
-            System.out.println("9. Quit (QUIT)");
-            System.out.println("==========================");
 
             BufferedReader consoleInput = new BufferedReader(new InputStreamReader(System.in));
 
             while (true) {
-                System.out.print("Select an option (1-9): ");
+                System.out.println("=== FTP Client Options ===");
+                System.out.println("1. List files (LIST)");
+                System.out.println("2. Retrieve file (RETR)");
+                System.out.println("3. Store file (STOR)");
+                System.out.println("4. Change working directory (CWD)");
+                System.out.println("5. Print working directory (PWD)");
+                System.out.println("6. Delete File (DELE)");
+                System.out.println("7. Remove Directory (RMD)");
+                System.out.println("8. Make Directory (MKD)");
+                System.out.println("9. Change to Parent Director (CDUP)");
+                System.out.println("10. Quit (QUIT)");
+                System.out.println("==========================");
+                System.out.print("Select an option (1-10): ");
                 String choice = consoleInput.readLine();
 
                 switch (choice) {
@@ -110,6 +115,11 @@ public class FTPClient {
                         break;
 
                     case "9":
+                        // CDUP command (Change to Parent Directory)
+                        CommandHandler.changeToParentDirectory(controlSocket, writer, reader);
+                        break;
+
+                    case "10":
                         // QUIT command
                         writer.println("QUIT");
                         System.out.println(readResponse());
@@ -134,22 +144,31 @@ public class FTPClient {
         }
     }
     private static void authenticate() throws IOException {
-//        writer.println("AUTH TLS");
         BufferedReader consoleInput = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter username: ");
-        String username = consoleInput.readLine();
-        writer.println("USER " + username);
-        System.out.println(readResponse());
+        while (true) {
+            System.out.print("Enter username: ");
+            String username = consoleInput.readLine();
+            writer.println("USER " + username);
+            String response = readResponse();
+            System.out.println(response);
 
-        System.out.print("Enter password: ");
-        String password = consoleInput.readLine();
-        writer.println("PASS " + password);
-        String response = readResponse();
-        System.out.println(response);
+            if (response.startsWith("430")) { // Nếu username sai
+                continue; // Quay lại nhập username
+            } else { // Username hợp lệ, yêu cầu nhập password
+                while (true) {
+                    System.out.print("Enter password: ");
+                    String password = consoleInput.readLine();
+                    writer.println("PASS " + password);
+                    response = readResponse();
+                    System.out.println(response);
 
-        if (!response.startsWith("230")) { // 230: Login successful
-            System.out.println("Authentication failed. Exiting...");
-            System.exit(1);
+                    if (response.startsWith("430")) { // Nếu password sai
+                        break; // Quay lại nhập username
+                    } else { // Đăng nhập thành công
+                        return; // Thoát chương trình hoặc tiếp tục các chức năng khác
+                    }
+                }
+            }
         }
     }
 

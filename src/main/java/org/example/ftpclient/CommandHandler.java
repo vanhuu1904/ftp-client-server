@@ -10,19 +10,19 @@ public class CommandHandler {
     public static void listRemote(Socket controlSocket, PrintWriter writer, BufferedReader reader) throws IOException {
         writer.println("PASV");
         String response = reader.readLine();
-        System.out.println(response);
+        System.out.println("\033[32m" + response + "\033[0m");
 
         int passivePort = extractPassivePort(response);
         try (Socket dataSocket = new Socket(controlSocket.getInetAddress(), passivePort);
-             BufferedReader dataReader = new BufferedReader(new InputStreamReader(dataSocket.getInputStream()))) {
+             BufferedReader dataReader = new BufferedReader(new InputStreamReader(dataSocket.getInputStream()))) { // Luồng dữ liệu đầu vào để nhận ds file
             writer.println("LIST");
-            System.out.println(readResponse(reader));
+            System.out.println("\033[32m" + readResponse(reader) + "\033[0m");
             String line;
             while ((line = dataReader.readLine()) != null) {
                 System.out.println(line);
             }
             response = reader.readLine();
-            System.out.println(response);
+            System.out.println("\033[32m" + response + "\033[0m");
         }
     }
 
@@ -30,30 +30,27 @@ public class CommandHandler {
     public static void retrieveFile(Socket controlSocket, PrintWriter writer, BufferedReader reader, String retrFileName) throws IOException {
         writer.println("PASV");
         String response = reader.readLine();
-        System.out.println(response);
+        System.out.println("\033[32m" + response + "\033[0m");
 
         int passivePort = extractPassivePort(response);
         try (Socket dataSocket = new Socket(controlSocket.getInetAddress(), passivePort);
-             InputStream dataIn = dataSocket.getInputStream()) {
+             InputStream dataIn = dataSocket.getInputStream()) { // Luồng đầu vào từ datasocket
             String remoteFile = retrFileName;
             writer.println("RETR " + remoteFile);
 
             response = readResponse(reader);
-            System.out.println(response);
-//            if (response.startsWith("550")) {
-//                System.out.println("File not found on server.");
-//                return;
-//            }
+            System.out.println("\033[32m" + response + "\033[0m");
 
-            FileOutputStream fileOut = new FileOutputStream(remoteFile);
+            FileOutputStream fileOut = new FileOutputStream(remoteFile);// Luồng đầu ra ghi dữ liệu
             byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             while ((bytesRead = dataIn.read(buffer)) != -1) {
                 fileOut.write(buffer, 0, bytesRead);
             }
             fileOut.close();
+            dataIn.close();
             response = reader.readLine();
-            System.out.println(response);
+            System.out.println("\033[32m" + response + "\033[0m");
         }
     }
 
@@ -61,23 +58,23 @@ public class CommandHandler {
     public static void storeFile(Socket controlSocket, PrintWriter writer, BufferedReader reader, String storFileName) throws IOException {
         writer.println("PASV");
         String response = reader.readLine();
-        System.out.println(response);
+        System.out.println("\033[32m" + response + "\033[0m");
 
         int passivePort = extractPassivePort(response);
         try (Socket dataSocket = new Socket(controlSocket.getInetAddress(), passivePort);
-             OutputStream dataOut = dataSocket.getOutputStream()) {
+             OutputStream dataOut = dataSocket.getOutputStream()) { // Luồng đầu ra
             String localFile = storFileName;
             File file = new File(localFile);
             if (!file.exists() || !file.canRead()) {
-                System.out.println("550 File unavailable.");
+                System.out.println("\033[31m550 File unavailable.\033[0m");
                 return;
             } else {
                 writer.println("STOR " + file.getName());
                 response = readResponse(reader);
-                System.out.println(response);
+                System.out.println("\033[32m" + response + "\033[0m");
 
-                FileInputStream fileIn = new FileInputStream(file);
-                byte[] buffer = new byte[BUFFER_SIZE];
+                FileInputStream fileIn = new FileInputStream(file); // Luồng đầu vào đọc dữ liệu
+                byte[] buffer = new byte[BUFFER_SIZE]; // mảng 1kB
                 int bytesRead;
                 while ((bytesRead = fileIn.read(buffer)) != -1) {
                     dataOut.write(buffer, 0, bytesRead);
@@ -85,7 +82,7 @@ public class CommandHandler {
                 fileIn.close();
                 dataOut.close();
                 response = readResponse(reader);
-                System.out.println(response);
+                System.out.println("\033[32m" + response + "\033[0m");
             }
         }
     }
@@ -104,38 +101,27 @@ public class CommandHandler {
     public static void changeWorkingDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader, String command) throws IOException {
         writer.println(command); // Gửi lệnh CWD
         String response = readResponse(reader); // Đọc phản hồi từ server
-        System.out.println(response);
-
-//        if (response.startsWith("250")) {
-//            System.out.println("Working directory successfully changed.");
-//        } else {
-//            System.out.println("Failed to change working directory.");
-//        }
+        System.out.println("\033[32m" + response + "\033[0m");
     }
     public static void printWorkingDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader) throws IOException {
         // Gửi lệnh PWD tới server
         writer.println("PWD");
         // Đọc và in phản hồi từ server
         String response = reader.readLine();
-        System.out.println(response);
+        System.out.println("\033[32m" + response + "\033[0m");
     }
 
     // Lệnh DELE: Xóa file trên server
     public static void deleteFile(Socket controlSocket, PrintWriter writer, BufferedReader reader, String fileName) throws IOException {
         writer.println("DELE " + fileName); // Gửi lệnh DELE cùng với tên file
         String response = readResponse(reader); // Đọc phản hồi từ server
-        System.out.println(response);
-//        if (response.startsWith("250")) {
-//            System.out.println("File deleted successfully.");
-//        } else {
-//            System.out.println("Failed to delete file: " + response);
-//        }
+        System.out.println("\033[32m" + response + "\033[0m");
     }
     // Lệnh RMD: Xóa thư mục trên server
     public static void removeDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader, String directoryName) throws IOException {
         writer.println("RMD " + directoryName); // Gửi lệnh RMD cùng với tên thư mục
         String response = readResponse(reader); // Đọc phản hồi từ server
-        System.out.println(response);
+        System.out.println("\033[32m" + response + "\033[0m");
 //        if (response.startsWith("250")) {
 //            System.out.println("Directory removed successfully.");
 //        } else {
@@ -147,13 +133,25 @@ public class CommandHandler {
     public static void makeDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader, String directoryName) throws IOException {
         writer.println("MKD " + directoryName); // Gửi lệnh MKD cùng với tên thư mục
         String response = readResponse(reader); // Đọc phản hồi từ server
-        System.out.println(response);
+        System.out.println("\033[32m" + response + "\033[0m");
 //        if (response.startsWith("257")) {
 //            System.out.println("Directory created successfully.");
 //        } else {
 //            System.out.println("Failed to create directory: " + response);
 //        }
     }
+    public static void changeToParentDirectory(Socket controlSocket, PrintWriter writer, BufferedReader reader) {
+        try {
+            // Gửi lệnh CDUP đến server
+            writer.println("CDUP");
+            String response = reader.readLine();
+            System.out.println("\033[32m" + response + "\033[0m");
+
+        } catch (IOException e) {
+            System.out.println("Error: Unable to execute CDUP command. " + e.getMessage());
+        }
+    }
+
     private static String readResponse(BufferedReader reader) throws IOException {
         StringBuilder response = new StringBuilder();
         String line;

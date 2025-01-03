@@ -161,7 +161,7 @@ public class CommandHandler {
                 return;
             }
 
-            conn.sendMessage("150 Opening data connection.");
+            conn.sendMessage(FTPResponse.OPEN_DATA_CONN);
 
             BufferedWriter dataWriter = new BufferedWriter(new OutputStreamWriter(dataSocket.getOutputStream()));
 
@@ -256,7 +256,6 @@ public class CommandHandler {
             if (path.equals("/" + conn.getCurrentAccount().getRootFolder())) {
                 newPath = rootPath;
             } else {
-                // Giải quyết đường dẫn tương đối từ rootPath
                 newPath = rootPath.resolve(path.substring(1)).normalize();
             }
         } else {
@@ -324,7 +323,7 @@ public class CommandHandler {
                 return;
             }
 
-            conn.sendMessage("150 Opening data connection.");
+            conn.sendMessage(FTPResponse.OPEN_DATA_CONN);
 
             try (OutputStream dataOut = dataSocket.getOutputStream();
                  FileInputStream fileIn = new FileInputStream(filePath.toFile())) {
@@ -360,7 +359,7 @@ public class CommandHandler {
                 return;
             }
 
-            conn.sendMessage("150 Opening data connection.");
+            conn.sendMessage(FTPResponse.OPEN_DATA_CONN);
 
             try (InputStream dataIn = dataSocket.getInputStream();
                  FileOutputStream fileOut = new FileOutputStream(filePath.toFile())) {
@@ -436,7 +435,7 @@ public class CommandHandler {
 
         try {
             Files.createDirectories(dirPath);
-            conn.sendMessage(FTPResponse.DIRECTORY_CREATED);
+            conn.sendMessage(FTPResponse.COMMAND_OKAY);
         } catch (IOException e) {
             conn.sendMessage(FTPResponse.FILE_UNAVAILABLE);
             System.err.println("MKD Error: " + e.getMessage());

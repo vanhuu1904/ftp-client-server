@@ -19,10 +19,9 @@ public class FTPResponse {
     public static final String COMMAND_OKAY = "200 Command okay.";
     public static final String TYPE_I_SUCCESS = "200 Switching to Binary mode.";
     public static final String TYPE_A_SUCCESS = "200 Switching to ASCII mode.";
-    public static final String DIRECTORY_CREATED = "257 Directory created.";
     public static final String DELETE_SUCCESS = "250 Delete success.";
     public static final String CLOSING_DATA_CONN = "226 Closing data connection. Requested file action successful.";
-
+    public static final String OPEN_DATA_CONN  = "150 Opening data connection.";
 
     public static final String NOT_IMPLEMENTED = "502 Command not implemented.";
     public static final String FILE_UNAVAILABLE = "550 File unavailable.";
